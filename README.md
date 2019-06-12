@@ -22,23 +22,22 @@ For ex: a 3-digit promo code which allows only the digits 0-9, gives us 10^3 pos
 
 ### Assignment service
 - Manages the promocode table
+```scala
+def getNextCode(userId) = {
+  val maxSlots = 36 ^ 6
+  var slot = hash(userId) % maxSlots
+  var res = setAndGet(slot, inUse=false) // Should leverage CAS
+  while not res.success
+  	slot = (slot + attempt * attempt) % maxSlots // quad probing
+	res = setAndGet(slot, inUse=false)
+  return res.code
+}
 ```
-def getNextCode(userId)
-  slot = hash(userId) % 36^6
-  // block that needs race protection
-  while slot in bloom_filter (membership true with defined error bound)
-    lookup slot from db and check in_use
-      if in_use
-        slot = slot + attempt * attempt - quad probing
-  set slot to in_use
-  add slot to bloom_filter
-  // block ends
-  return slot.code
-```
+- The above assignment should adapt to a free-list based mechanism when promocodes slots are more than X% full
 
 ### User / promo_code storage
-	- user, promo_code
-	- inverted index of promo_code to user (if query needs)
+- user, promo_code
+- inverted index of promo_code to user (if query needs)
 
 ### User signup flow
 - User signup happens
@@ -51,7 +50,10 @@ def getNextCode(userId)
 Cassandra / ScyllaDB / DynamoDB / HBase - choice is based on combination of existing infra tools / maturity / team strength and community support.
 
 ## Scaling when user load explodes
-- The promocode service - which assigns the promocode to user needs to scale out. Given that the underlying DB choice is horizontally scalable, we can scale out the DB too if we see hotspots in the DB. But, before doing anything, first step would be to measure where the hotspot is.
+- Before doing any improvements, first step would be to measure bottlenecks.
+- The promocode service - which assigns the promocode to user can scale out. 
+- Given that the underlying DB choice is horizontally scalable, we can scale out the DB too if we see hotspots in the DB 
+- Bloom filter needs to be kept in sync across services - easier to get rid of bloom than to 
 
 ## Alternate design for Promocode service:
 - Sharded service which manages its own state - promo codes & their in_use state
