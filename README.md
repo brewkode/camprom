@@ -11,6 +11,9 @@ Promocodes are basically a `n-digit sequence of characters` that are unique and 
 For ex: a 3-digit promo code which allows only the digits 0-9, gives us 10^3 possibilities. i.e., from 000 to 999
 
 ## Details
+### Rough sketch
+![Camprom high level sketch](https://raw.githubusercontent.com/brewkode/camprom/master/docs/img/camprom_highlevel.jpg)
+
 
 ### Promo code generation process
 - One-time generation & persistence to DB
