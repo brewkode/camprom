@@ -24,7 +24,7 @@ For ex: a 3-digit promo code which allows only the digits 0-9, gives us 10^3 pos
 - Manages the promocode table
 ```scala
 def getNextCode(userId) = {
-  val maxSlots = 36 ^ 6
+  val maxSlots = charsetSize ^ n
   var slot = hash(userId) % maxSlots
   var res = setAndGet(slot, inUse=false) // Should leverage CAS
   while not res.success
@@ -47,15 +47,14 @@ def getNextCode(userId) = {
 
 
 ## DB Choice
-Cassandra / ScyllaDB / DynamoDB / HBase - choice is based on combination of existing infra tools / maturity / team strength and community support.
+Cassandra / ScyllaDB / DynamoDB / HBase - based on combination of existing infra / maturity / team strength and community support.
 
 ## Scaling when user load explodes
 - Before doing any improvements, first step would be to measure bottlenecks.
-- The promocode service - which assigns the promocode to user can scale out. 
+- Potential areas of bottleneck - the service layer, code assignment logic and the DB
+- The promocode service - can horizontally scale out, since it doesn't have any local state
 - Given that the underlying DB choice is horizontally scalable, we can scale out the DB too if we see hotspots in the DB 
-- Bloom filter needs to be kept in sync across services - easier to get rid of bloom than to 
+- The contention will go up since there are now more code assignments (potentially) happening. Evolution to free-list based mechanism will mitigate some of this.
 
 ## Alternate design for Promocode service:
-- Sharded service which manages its own state - promo codes & their in_use state
-- CHR to decide which shard to forward the request to based on hash(userId)
-- Since, data is owned locally by a CHR node shard, contention is reduced by factor of N, where N is number of nodes in CHR
+- Service with handleOrForward semantic - to allow request localization and avoid contention from many service hosts. Shard level flag to signify if a particular shard is fully taken or not.
